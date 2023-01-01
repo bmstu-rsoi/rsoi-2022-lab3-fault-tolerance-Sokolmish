@@ -4,7 +4,8 @@ RUN pip install \
     flask \
     flask_api \
     psycopg2 \
-    requests
+    requests \
+    circuitbreaker
 
 COPY srv_gateway/ /app/
 COPY common/ /app/common/

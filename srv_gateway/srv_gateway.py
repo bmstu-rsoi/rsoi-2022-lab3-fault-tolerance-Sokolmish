@@ -6,12 +6,27 @@ import urllib.parse
 import json
 import requests
 import datetime
+from circuitbreaker import circuit
 
 import common.services as services
 from common.api_messages import *
 
 
 app = flask.Flask(__name__)
+
+
+@circuit
+def getLoyaltyStatus(username: str):
+    return requests.get(
+        f'{services.LOYALTY_ADDR}/status?username={urllib.parse.quote(username)}'
+    )
+
+
+@circuit
+def getLoyaltyDiscount(username: str) -> int:
+    return requests.get(
+        f'{services.LOYALTY_ADDR}/discount?username={urllib.parse.quote(username)}'
+    ).json()['discount']
 
 
 @app.route('/api/v1/hotels', methods=['GET'])
@@ -43,14 +58,21 @@ def get_user_reservations(name: str):
 def meRoute():
     name = flask.request.headers.get('X-User-Name')
     reservations = get_user_reservations(name)
-    loyalty = requests.get(
-        f'{services.LOYALTY_ADDR}/status?username={urllib.parse.quote(name)}'
-    ).json()
+    try:
+        loyalty = getLoyaltyStatus(name).json()
+    except:
+        loyalty = None
 
-    res = json.dumps({
-        "reservations": reservations,
-        "loyalty": loyalty,
-    }, indent=None, cls=MyEncoder)
+    res_dict = {
+        'reservations': [],
+        'loyalty': [],
+    }
+    if reservations is not None:
+        res_dict['reservations'] = reservations
+    if loyalty is not None:
+        res_dict['loyalty'] = loyalty
+
+    res = json.dumps(res_dict, indent=None, cls=MyEncoder)
 
     resp = flask.Response(res)
     resp.headers['Content-Type'] = 'application/json'
@@ -79,12 +101,17 @@ def reservationsRoute():
             f'{services.RESERVATION_ADDR}/hotel?uid={urllib.parse.quote(reqData["hotelUid"])}'
         ).json()
 
-        # TODO: hotel not found
-
         # Get discount
-        discount: int = requests.get(
-            f'{services.LOYALTY_ADDR}/discount?username={urllib.parse.quote(name)}'
-        ).json()['discount']
+        try:
+            discount = getLoyaltyDiscount(name)
+        except:
+            msg = {'message': 'Loyalty Service unavailable'}
+            resp = flask.Response(json.dumps(
+                msg, indent=None), status.HTTP_503_SERVICE_UNAVAILABLE)
+            resp.headers['Content-Type'] = 'application/json'
+            return resp
+
+        # Calculate price
         startDate = datetime.datetime.fromisoformat(start_date_s)
         endDate = datetime.datetime.fromisoformat(end_date_s)
         nights = (endDate - startDate).days
@@ -179,9 +206,16 @@ def specReservationsRoute(uid):
 @app.route('/api/v1/loyalty', methods=['GET'])
 def loyaltyRoute():
     name = flask.request.headers.get('X-User-Name')
-    res = requests.get(
-        f'{services.LOYALTY_ADDR}/status?username={urllib.parse.quote(name)}'
-    ).text
+
+    try:
+        res = getLoyaltyStatus(name).text
+    except:
+        msg = {'message': 'Loyalty Service unavailable'}
+        resp = flask.Response(json.dumps(msg, indent=None),
+                              status.HTTP_503_SERVICE_UNAVAILABLE)
+        resp.headers['Content-Type'] = 'application/json'
+        return resp
+
     resp = flask.Response(res)
     resp.headers['Content-Type'] = 'application/json'
     return resp
