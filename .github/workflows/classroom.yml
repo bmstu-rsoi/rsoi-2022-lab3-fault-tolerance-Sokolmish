@@ -28,7 +28,7 @@ jobs:
         run: |
           docker compose up -d
           ./scripts/wait-script.sh
-          sleep 30
+          sleep 5
         env:
           WAIT_PORTS: 8080,8070,8060,8050
 
@@ -37,8 +37,8 @@ jobs:
         run: ./scripts/test-script.sh
         env:
           VARIANT: v2
-          SERVICE_NAME: spread_gateway
-          PORT_NUMBER: 8080
+          SERVICE_NAME: spread_payment
+          PORT_NUMBER: 8060
 
       - uses: education/autograding@v1
         id: autograder

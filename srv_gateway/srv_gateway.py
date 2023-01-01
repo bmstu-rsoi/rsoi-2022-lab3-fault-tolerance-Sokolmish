@@ -18,7 +18,8 @@ app = flask.Flask(__name__)
 def hotelsRoute():
     page = int(flask.request.args.get('page', '0'))
     size = int(flask.request.args.get('size', '100'))
-    r = requests.get(f'{services.RESERVATION_ADDR}/all_hotels?page={page}&size={size}')
+    r = requests.get(
+        f'{services.RESERVATION_ADDR}/all_hotels?page={page}&size={size}')
     if r.status_code != status.HTTP_200_OK:
         return flask.Response('Smth went wrong', status.HTTP_400_BAD_REQUEST)
     resp = flask.Response(r.text)
@@ -131,7 +132,7 @@ def reservationsRoute():
         )
 
 
-@ app.route('/api/v1/reservations/<uid>', methods=['GET', 'DELETE'])
+@app.route('/api/v1/reservations/<uid>', methods=['GET', 'DELETE'])
 def specReservationsRoute(uid):
     name = flask.request.headers.get('X-User-Name')
 
@@ -175,13 +176,20 @@ def specReservationsRoute(uid):
         )
 
 
-@ app.route('/api/v1/loyalty', methods=['GET'])
+@app.route('/api/v1/loyalty', methods=['GET'])
 def loyaltyRoute():
     name = flask.request.headers.get('X-User-Name')
     res = requests.get(
         f'{services.LOYALTY_ADDR}/status?username={urllib.parse.quote(name)}'
     ).text
     resp = flask.Response(res)
+    resp.headers['Content-Type'] = 'application/json'
+    return resp
+
+
+@app.route('/manage/health', methods=['GET'])
+def gwHealthRoute():
+    resp = flask.Response("")
     resp.headers['Content-Type'] = 'application/json'
     return resp
 

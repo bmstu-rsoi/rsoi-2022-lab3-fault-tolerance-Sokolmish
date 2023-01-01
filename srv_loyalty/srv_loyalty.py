@@ -87,4 +87,11 @@ def statusRoute():
     return resp
 
 
+@app.route('/manage/health', methods=['GET'])
+def loHealthRoute():
+    resp = flask.Response("")
+    resp.headers['Content-Type'] = 'application/json'
+    return resp
+
+
 app.run(host="0.0.0.0", port=services.LOYALTY_PORT)

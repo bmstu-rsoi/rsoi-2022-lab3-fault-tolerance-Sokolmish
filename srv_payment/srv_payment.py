@@ -80,4 +80,11 @@ def paymentCancelRoute():
     return resp
 
 
+@app.route('/manage/health', methods=['GET'])
+def paHealthRoute():
+    resp = flask.Response("")
+    resp.headers['Content-Type'] = 'application/json'
+    return resp
+
+
 app.run(host="0.0.0.0", port=services.PAYMENT_PORT)

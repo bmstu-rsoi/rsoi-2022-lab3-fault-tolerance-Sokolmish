@@ -167,4 +167,11 @@ def cancelRoute():
     return resp
 
 
+@app.route('/manage/health', methods=['GET'])
+def reHealthRoute():
+    resp = flask.Response("")
+    resp.headers['Content-Type'] = 'application/json'
+    return resp
+
+
 app.run(host="0.0.0.0", port=services.RESERVATION_PORT)
