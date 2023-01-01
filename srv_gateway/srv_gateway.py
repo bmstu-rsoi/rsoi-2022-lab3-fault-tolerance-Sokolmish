@@ -1,4 +1,6 @@
 import sys
+import threading
+from time import sleep
 import flask
 from flask_api import status
 
@@ -13,6 +15,9 @@ from common.api_messages import *
 
 
 app = flask.Flask(__name__)
+
+
+delayed_tasks = []
 
 
 @circuit
@@ -189,8 +194,16 @@ def specReservationsRoute(uid):
             f'{services.RESERVATION_ADDR}/cancel?uid={urllib.parse.quote(uid)}')
         requests.get(
             f'{services.PAYMENT_ADDR}/cancel?uid={urllib.parse.quote(payment_uuid)}')
-        requests.get(
-            f'{services.LOYALTY_ADDR}/update?username={urllib.parse.quote(name)}&delta=-1')
+
+        def loyalty_delayed_task(username):
+            global delayed_tasks
+            try:
+                requests.get(
+                    f'{services.LOYALTY_ADDR}/update?username={urllib.parse.quote(username)}&delta=-1')
+            except:
+                delayed_tasks.append((loyalty_delayed_task, (username,)))
+
+        loyalty_delayed_task(name)
 
         resp = flask.Response('{}', status.HTTP_204_NO_CONTENT)
         resp.headers['Content-Type'] = 'application/json'
@@ -227,5 +240,18 @@ def gwHealthRoute():
     resp.headers['Content-Type'] = 'application/json'
     return resp
 
+
+def delayed_tasks_executor():
+    global delayed_tasks
+    if len(delayed_tasks) != 0:
+        tasks = delayed_tasks
+        delayed_tasks = []
+        for task in tasks:
+            task[0](*task[1])
+    sleep(10)
+
+
+delayed_executor_thr = threading.Thread(target=delayed_tasks_executor)
+delayed_executor_thr.start()
 
 app.run(host="0.0.0.0", port=services.GATEWAY_PORT)
