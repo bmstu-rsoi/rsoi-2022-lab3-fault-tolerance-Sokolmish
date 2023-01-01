@@ -1,0 +1,14 @@
+FROM python
+
+RUN pip install \
+    flask \
+    flask_api \
+    psycopg2 \
+    requests
+
+COPY srv_loyalty/ /app/
+COPY common/ /app/common/
+
+WORKDIR /app
+
+CMD [ "python3", "/app/srv_loyalty.py" ]

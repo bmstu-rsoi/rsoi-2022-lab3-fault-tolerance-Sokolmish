@@ -14,7 +14,51 @@ services:
     ports:
       - "5432:5432"
 
-# TODO добавить сервисы
+  spread_loyalty:
+    build:
+      context: ./
+      dockerfile: Dockerfile.loyalty
+    container_name: spread_loyalty
+    restart: on-failure
+    ports:
+      - "8050:8050"
+    depends_on:
+      - postgres
+
+  spread_payment:
+    build:
+      context: ./
+      dockerfile: Dockerfile.payment
+    container_name: spread_payment
+    restart: on-failure
+    ports:
+      - "8060:8060"
+    depends_on:
+      - postgres
+
+  spread_reservation:
+    build:
+      context: ./
+      dockerfile: Dockerfile.reservation
+    container_name: spread_reservation
+    restart: on-failure
+    ports:
+      - "8070:8070"
+    depends_on:
+      - postgres
+
+  spread_gateway:
+    build:
+      context: ./
+      dockerfile: Dockerfile.gateway
+    container_name: spread_gateway
+    restart: on-failure
+    ports:
+      - "8080:8080"
+    depends_on:
+      - spread_loyalty
+      - spread_payment
+      - spread_reservation
 
 volumes:
   db-data:
